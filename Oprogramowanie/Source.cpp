@@ -9,35 +9,38 @@
 
 using namespace std;
 
+//coordinates of single node
 struct Node {
-	float x; //wspolrzedna x
-	float y; //wspolrzedna y
-	int n;	//numer wezla
-	bool bc; //warunek brzegowy
+	float x, y;
+	int n;	
+	bool bc; 
 };
 
+//the id number and it's value
 struct Element {
-	int ID[5]; //numer + wartoœci
+	int ID[5];
 };
 
+//grid with numbers of nodes and elements
 struct Grid {
 	int nN = 1; //number of nodes
 	int nE = 1; //number of elements
 };
 
+//global data which come from the file
 struct GlobalData {
 	int t;		//SimulationTime
 	int st;		//SimulationStepTime 
 	int lambda;	//Conductivity
-	int alpha;	//Alfa - wspolczynnik przewodzenia
-	int tot;	//Tot - temperatura otoczenia
+	int alpha;	//Alfa 
+	int tot;	//Tot
 	int it;		//InitialTime
 	int d;		//Density
 	int cp;		//SpecificHeat
 };
 
+//scheme of integration, with points of integration and weights
 struct Integration {
-	//punkty ca³kowania i ich wagi
 	double nodes2[2] = { -1 / sqrt(3), 1 / sqrt(3) };
 	double weights2[2] = { 1,1 };
 
@@ -45,6 +48,7 @@ struct Integration {
 	double weights3[3] = { 0.55555, 0.88888, 0.55555 };
 };
 
+//reading the file
 void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list <Element>* listOfElements) {
 
 	fstream dataFile;
@@ -139,6 +143,7 @@ void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list
 	dataFile.close();
 }
 
+//function to read
 double function1D(double x) {
 	return 2 * x * x + 3 * x - 8;
 }
@@ -151,6 +156,7 @@ double func(double x) {
 	return 3 * x * x - 6 * x + 1;
 }
 
+//integration without bounds, but with 2 dimentions
 double integration(Integration* scheme, int numOfPoints, int numOfDimention) {
 	double result = 0;
 
@@ -178,11 +184,10 @@ double integration(Integration* scheme, int numOfPoints, int numOfDimention) {
 			}
 		}
 	}
-
-	
 	return result;
 }
 
+//integration with bounds and 1 dimention
 double integrationBounds(Integration* scheme, int numOfPoints, double x1, double x2) {
 	double result = 0;
 	if (numOfPoints == 2) {
@@ -193,19 +198,22 @@ double integrationBounds(Integration* scheme, int numOfPoints, double x1, double
 		for (int i = 0; i < numOfPoints; i++) result += func(((1 - (*scheme).nodes3[i]) / 2) * x1 +
 			(((*scheme).nodes3[i] + 1) / 2) * x2) * ((x2 - x1) / 2) * (*scheme).weights3[i];
 	}
-
 	return result;
 }
 
 int main() {
 
+	//structures and list doing brrrrrr
 	Grid grid;
 	GlobalData globaldata;
 	Integration scheme;
 	list<Node> listOfNodes;
 	list<Element> listOfElements;
+
+	//reading the file
 	readFile(&globaldata, &grid, &listOfNodes, &listOfElements);
 
+	//results of integration
 	cout << "Integration without bounds for f(x) = 2x^2 + 3x - 8: \n" << endl;
 	cout << "Integration for 1D and 2 points: " << integration(&scheme, 2, 1) << endl;
 	cout << "Integration for 1D and 3 points: " << integration(&scheme, 3, 1) << endl << endl;;
