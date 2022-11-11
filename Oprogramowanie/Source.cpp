@@ -147,6 +147,10 @@ double function2D(double ksi, double eta) {
 	return -5 * ksi * ksi * eta + 2 * ksi * eta * eta + 10;
 }
 
+double func(double x) {
+	return 3 * x * x - 6 * x + 1;
+}
+
 double integration(Integration* scheme, int numOfPoints, int numOfDimention) {
 	double result = 0;
 
@@ -179,6 +183,19 @@ double integration(Integration* scheme, int numOfPoints, int numOfDimention) {
 	return result;
 }
 
+double integrationBounds(Integration* scheme, int numOfPoints, double x1, double x2) {
+	double result = 0;
+	if (numOfPoints == 2) {
+		for (int i = 0; i < numOfPoints; i++) result += func(((1 - (*scheme).nodes2[i]) / 2) * x1 +
+			(((*scheme).nodes2[i] + 1) / 2) * x2) * ((x2 - x1) / 2) * (*scheme).weights2[i];
+	}
+	if (numOfPoints == 3) {
+		for (int i = 0; i < numOfPoints; i++) result += func(((1 - (*scheme).nodes3[i]) / 2) * x1 +
+			(((*scheme).nodes3[i] + 1) / 2) * x2) * ((x2 - x1) / 2) * (*scheme).weights3[i];
+	}
+
+	return result;
+}
 
 int main() {
 
@@ -189,10 +206,15 @@ int main() {
 	list<Element> listOfElements;
 	readFile(&globaldata, &grid, &listOfNodes, &listOfElements);
 
+	cout << "Integration without bounds for f(x) = 2x^2 + 3x - 8: \n" << endl;
 	cout << "Integration for 1D and 2 points: " << integration(&scheme, 2, 1) << endl;
-	cout << "Integration for 1D and 3 points: " << integration(&scheme, 3, 1) << endl;
+	cout << "Integration for 1D and 3 points: " << integration(&scheme, 3, 1) << endl << endl;;
+	cout << "Integration without bounds for f(x) = -5ksi^2 * eta + 2 * ksi * eta^2 + 10: \n" << endl;
 	cout << "Integration for 2D and 2 points: " << integration(&scheme, 2, 2) << endl;
-	cout << "Integration for 2D and 3 points: " << integration(&scheme, 3, 2) << endl;
+	cout << "Integration for 2D and 3 points: " << integration(&scheme, 3, 2) << endl << endl;
+	cout << "Integration with bounds [-3,6.5] for f(x) = 3x^2 - 6x + 1: \n" << endl;
+	cout << "Integration for 1D and 2 points:" << integrationBounds(&scheme, 2, -3, 6.5) << endl;
+	cout << "Integration for 1D and 3 points:" << integrationBounds(&scheme, 3, -3, 6.5) << endl << endl;
 
 
 	system("pause");
