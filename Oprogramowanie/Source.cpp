@@ -1,4 +1,4 @@
-#include <iostream>
+ #include <iostream>
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +8,7 @@
 #include <vector>
 
 using namespace std;
+double nKsi[4], nEta[4];
 
 //coordinates of single node
 struct Node {
@@ -47,6 +48,103 @@ struct Integration {
 	double nodes3[3] = { -sqrt(0.6), 0 , sqrt(0.6) };
 	double weights3[3] = { 0.55555, 0.88888, 0.55555 };
 };
+
+//dynamic arrays for derivatives with 2points
+struct Elem4 {
+	double** tabKsi = new double*[4];
+	double** tabEta = new double*[4];
+
+	double pcKsi[4] = { -1 / sqrt(3), 1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3) };
+	double pcEta[4] = { -1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3) };
+
+	Elem4() {
+		for (int i = 0; i < 4; i++) tabKsi[i] = new double[4];
+		for (int i = 0; i < 4; i++) tabEta[i] = new double[4];
+	}
+
+	void printElem() {
+		cout << "\ndN/dKsi\n";
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				cout << tabKsi[i][j] << " ";
+			}
+			cout << endl;
+		}
+
+		cout << "\ndN/dEta\n";
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				cout << tabEta[i][j] << " ";
+			}
+			cout << endl;
+		}
+	}
+};
+
+//dynamic arrays for derivatives with 3points
+struct Elem9 {
+	double** tabKsi = new double* [9];
+	double** tabEta = new double* [9];
+
+	double pcKsi[9] = { -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0 ,sqrt(0.6) };
+	double pcEta[9] = { -sqrt(0.6), -sqrt(0.6), -sqrt(0.6), 0, 0, 0, sqrt(0.6), sqrt(0.6) , sqrt(0.6) };
+
+
+	Elem9() {
+		for (int i = 0; i < 9; i++) tabKsi[i] = new double[4];
+		for (int i = 0; i < 9; i++) tabEta[i] = new double[4];
+	}
+
+	void printElem() {
+		cout << "\ndN/dKsi\n";
+		for (int i = 0; i < 9; i++) {
+			for (int j = 0; j < 4; j++) {
+				cout << tabKsi[i][j] << " ";
+			}
+			cout << endl;
+		}
+
+		cout << "\ndN/dEta\n";
+		for (int i = 0; i < 9; i++) {
+			for (int j = 0; j < 4; j++) {
+				cout << tabEta[i][j] << " ";
+			}
+			cout << endl;
+		}
+	}
+};
+
+//scheme for caculating derivatives with 2 points
+void derivativesScheme4(int i) {
+	double pcKsi[4] = { -1 / sqrt(3), 1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3) };
+	double pcEta[4] = { -1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3) };
+
+	nKsi[0] = -0.25 * (1 - pcEta[i]); 
+	nKsi[1] = 0.25 * (1 - pcEta[i]);
+	nKsi[2] = 0.25 * (1 + pcEta[i]);
+	nKsi[3] = -0.25 * (1 + pcEta[i]);
+
+	nEta[0] = -0.25 * (1 - pcKsi[i]);
+	nEta[1] = -0.25 * (1 + pcKsi[i]);
+	nEta[2] = 0.25 * (1 + pcKsi[i]);
+	nEta[3] = 0.25 * (1 - pcKsi[i]);
+}
+
+//scheme for caculating derivatives with 3 points
+void derivativesScheme9(int i) {
+	double pcKsi[9] = { -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0 ,sqrt(0.6) };
+	double pcEta[9] = { -sqrt(0.6), -sqrt(0.6), -sqrt(0.6), 0, 0, 0, sqrt(0.6), sqrt(0.6) , sqrt(0.6) };
+
+	nKsi[0] = -0.25 * (1 - pcEta[i]);
+	nKsi[1] = 0.25 * (1 - pcEta[i]);
+	nKsi[2] = 0.25 * (1 + pcEta[i]);
+	nKsi[3] = -0.25 * (1 + pcEta[i]);
+
+	nEta[0] = -0.25 * (1 - pcKsi[i]);
+	nEta[1] = -0.25 * (1 + pcKsi[i]);
+	nEta[2] = 0.25 * (1 + pcKsi[i]);
+	nEta[3] = 0.25 * (1 - pcKsi[i]);
+}
 
 //reading the file
 void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list <Element>* listOfElements) {
@@ -143,7 +241,7 @@ void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list
 	dataFile.close();
 }
 
-//function to read
+//functions to read
 double function1D(double x) {
 	return 2 * x * x + 3 * x - 8;
 }
@@ -201,6 +299,41 @@ double integrationBounds(Integration* scheme, int numOfPoints, double x1, double
 	return result;
 }
 
+//counting derivatives in two arrays for Elem4
+void derivativesElem(Elem4* elem4, Elem9* elem9, void(*derivativesScheme4)(int), void(*derivativesScheme9)(int)){
+
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			derivativesScheme4(i);
+			elem4->tabKsi[i][j] = nKsi[j];
+		}
+	}
+
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			derivativesScheme4(i);
+			elem4->tabEta[i][j] = nEta[j];
+		}
+	}
+
+	for (int i = 0; i < 9; i++) {
+		for (int j = 0; j < 4; j++) {
+			derivativesScheme9(i);
+			elem9->tabKsi[i][j] = nKsi[j];
+		}
+	} 
+
+	for (int i = 0; i < 9; i++) {
+		for (int j = 0; j < 4; j++) {
+			derivativesScheme9(i);
+			elem9->tabEta[i][j] = nEta[j];
+		}
+	}
+
+	elem4->printElem();
+	elem9->printElem();
+}
+
 int main() {
 
 	//structures and list doing brrrrrr
@@ -209,11 +342,14 @@ int main() {
 	Integration scheme;
 	list<Node> listOfNodes;
 	list<Element> listOfElements;
+	Elem4 elem4;
+	Elem9 elem9;
 
 	//reading the file
 	readFile(&globaldata, &grid, &listOfNodes, &listOfElements);
 
 	//results of integration
+	/*
 	cout << "Integration without bounds for f(x) = 2x^2 + 3x - 8: \n" << endl;
 	cout << "Integration for 1D and 2 points: " << integration(&scheme, 2, 1) << endl;
 	cout << "Integration for 1D and 3 points: " << integration(&scheme, 3, 1) << endl << endl;;
@@ -223,7 +359,11 @@ int main() {
 	cout << "Integration with bounds [-3,6.5] for f(x) = 3x^2 - 6x + 1: \n" << endl;
 	cout << "Integration for 1D and 2 points:" << integrationBounds(&scheme, 2, -3, 6.5) << endl;
 	cout << "Integration for 1D and 3 points:" << integrationBounds(&scheme, 3, -3, 6.5) << endl << endl;
+	*/
 
+	//results of derivatives
+	//derivativesElem(&elem4, &elem9, &derivativesScheme4, &derivativesScheme9);
 
 	system("pause");
+
 }
