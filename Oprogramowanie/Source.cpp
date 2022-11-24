@@ -1,4 +1,5 @@
- #include <iostream>
+#include <iostream>
+#include <cstdio>
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,8 +59,10 @@ struct Elem4 {
 	double pcEta[4] = { -1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3) };
 
 	Elem4() {
-		for (int i = 0; i < 4; i++) tabKsi[i] = new double[4];
-		for (int i = 0; i < 4; i++) tabEta[i] = new double[4];
+		for (int i = 0; i < 4; i++) {
+			tabKsi[i] = new double[4];
+			tabEta[i] = new double[4];
+		}
 	}
 
 	void printElem() {
@@ -85,14 +88,19 @@ struct Elem4 {
 struct Elem9 {
 	double** tabKsi = new double* [9];
 	double** tabEta = new double* [9];
+	double** tabX = new double* [9];
+	double** tabY = new double* [9];
 
 	double pcKsi[9] = { -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0 ,sqrt(0.6) };
 	double pcEta[9] = { -sqrt(0.6), -sqrt(0.6), -sqrt(0.6), 0, 0, 0, sqrt(0.6), sqrt(0.6) , sqrt(0.6) };
 
-
 	Elem9() {
-		for (int i = 0; i < 9; i++) tabKsi[i] = new double[4];
-		for (int i = 0; i < 9; i++) tabEta[i] = new double[4];
+		for (int i = 0; i < 9; i++) {
+			tabKsi[i] = new double[4];
+			tabEta[i] = new double[4];
+			tabX[i] = new double[4];
+			tabY[i] = new double[4];
+		}
 	}
 
 	void printElem() {
@@ -112,6 +120,7 @@ struct Elem9 {
 			cout << endl;
 		}
 	}
+
 };
 
 //scheme for caculating derivatives with 2 points
@@ -300,43 +309,120 @@ double integrationBounds(Integration* scheme, int numOfPoints, double x1, double
 }
 
 //counting derivatives in two arrays for Elem4
-void derivativesElem(Elem4* elem4, Elem9* elem9, void(*derivativesScheme4)(int), void(*derivativesScheme9)(int)){
+void derivativesElem(Elem4* elem4, Elem9* elem9, void(*derivativesScheme4)(int), void(*derivativesScheme9)(int), int numOfPoints){
 
-	for (int i = 0; i < 4; i++) {
+	if (numOfPoints == 2) {
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				derivativesScheme4(i);
+				elem4->tabKsi[i][j] = nKsi[j];
+			}
+		}
+
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				derivativesScheme4(i);
+				elem4->tabEta[i][j] = nEta[j];
+			}
+		}
+
+		//elem4->printElem();
+	}
+
+	if (numOfPoints == 3) {
+		for (int i = 0; i < 9; i++) {
+			for (int j = 0; j < 4; j++) {
+				derivativesScheme9(i);
+				elem9->tabKsi[i][j] = nKsi[j];
+			}
+		}
+
+		for (int i = 0; i < 9; i++) {
+			for (int j = 0; j < 4; j++) {
+				derivativesScheme9(i);
+				elem9->tabEta[i][j] = nEta[j];
+			}
+		}
+		//elem9->printElem();
+	}
+}
+
+void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *elem9) {
+	derivativesElem(elem4, elem9, &derivativesScheme4, &derivativesScheme9, numOfPoints);
+	numOfPoints *= numOfPoints;
+	double x[4] = {0, 0.025, 0.025,0};
+	double y[4] = {0, 0, 0.025, 0.025};
+	double** jacobian = new double* [numOfPoints];
+	double** tabX = new double* [numOfPoints];
+	double** tabY = new double* [numOfPoints];
+	double** matrixH = new double* [numOfPoints];
+	for (int i = 0; i < 4; i++) { 
+		jacobian[i] = new double[4];
+		tabX[i] = new double[4];
+		tabY[i] = new double[4];
+		matrixH[i] = new double[4];
+	}
+	for (int i = 0; i < numOfPoints; i++){
 		for (int j = 0; j < 4; j++) {
-			derivativesScheme4(i);
-			elem4->tabKsi[i][j] = nKsi[j];
+			jacobian[i][j] = 0;
+			matrixH[i][j] = 0;
 		}
 	}
 
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
-			derivativesScheme4(i);
-			elem4->tabEta[i][j] = nEta[j];
+			jacobian[i][0] += elem4->tabKsi[i][j] * x[j];
+			jacobian[i][1] += elem4->tabKsi[i][j] * y[j];
+			jacobian[i][2] += elem4->tabEta[i][j] * x[j];
+			jacobian[i][3] += elem4->tabEta[i][j] * y[j];
 		}
 	}
 
-	for (int i = 0; i < 9; i++) {
+	double detJacobian[4] = { 0,0,0,0 };
+	double detJacobianMinus[4] = { 0,0,0,0 };
+	for (int i = 0; i < 4; i++) {
+		detJacobianMinus[i] = (jacobian[i][0] * jacobian[i][3] - jacobian[i][1] * jacobian[i][2]);
+		detJacobian[i] = 1 / detJacobianMinus[i];
+	}
+	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
-			derivativesScheme9(i);
-			elem9->tabKsi[i][j] = nKsi[j];
-		}
-	} 
-
-	for (int i = 0; i < 9; i++) {
-		for (int j = 0; j < 4; j++) {
-			derivativesScheme9(i);
-			elem9->tabEta[i][j] = nEta[j];
+			jacobian[i][j] *= detJacobian[j];
 		}
 	}
 
-	elem4->printElem();
-	elem9->printElem();
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			tabX[i][j] = jacobian[i][0] * elem4->tabKsi[i][j] + jacobian[i][1] * elem4->tabEta[i][j];
+		}
+	}
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			tabY[i][j] = jacobian[i][2] * elem4->tabKsi[i][j] + jacobian[i][3] * elem4->tabEta[i][j];
+		}
+	}
+ 
+	for (int i = 0; i < 4; i++) { 
+		for (int j = 0; j < 4; j++) {
+			for (int k = 0; k < 4; k++) {
+				matrixH[i][j] +=  (30 * (tabX[k][j] * tabX[k][i] + tabY[k][j] * tabY[k][i]) * detJacobianMinus[i]);
+			}
+		}
+	}
+	
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			cout << matrixH[i][j] << " ";
+		}
+		cout << endl; 
+	}
+
+
+
 }
 
 int main() {
 
-	//structures and list doing brrrrrr
+	//structures and lists go brrrrrr
 	Grid grid;
 	GlobalData globaldata;
 	Integration scheme;
@@ -349,6 +435,7 @@ int main() {
 	readFile(&globaldata, &grid, &listOfNodes, &listOfElements);
 
 	//results of integration
+	//solution integration(&scheme, numOfPoints, numOfDimention)
 	/*
 	cout << "Integration without bounds for f(x) = 2x^2 + 3x - 8: \n" << endl;
 	cout << "Integration for 1D and 2 points: " << integration(&scheme, 2, 1) << endl;
@@ -362,7 +449,10 @@ int main() {
 	*/
 
 	//results of derivatives
-	//derivativesElem(&elem4, &elem9, &derivativesScheme4, &derivativesScheme9);
+	//solution derivativesElem(&elem4, &elem9, &derivativesScheme4, &derivativesScheme9, numOfPoints)
+	//derivativesElem(&elem4, &elem9, &derivativesScheme4, &derivativesScheme9, 2);
+	//derivativesElem(&elem4, &elem9, &derivativesScheme4, &derivativesScheme9, 3);
+	matrixH(2, &listOfNodes, &elem4, &elem9);
 
 	system("pause");
 
