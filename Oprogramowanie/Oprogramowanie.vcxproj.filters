@@ -23,5 +23,11 @@
     <Text Include="Test1_4_4.txt">
       <Filter>Source Files</Filter>
     </Text>
+    <Text Include="Test2_4_4.txt">
+      <Filter>Source Files</Filter>
+    </Text>
+    <Text Include="Test3_31_31.txt">
+      <Filter>Source Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

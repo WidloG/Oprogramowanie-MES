@@ -225,8 +225,8 @@ void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list
 			name >> name >> grid->nE >> name;
 		
 		//wypisywanie
-		/*
-		cout << "Simulation Time: " << globaldata->t << endl;
+	
+		/*cout << "Simulation Time: " << globaldata->t << endl;
 		cout << "Simulation Step Time: " << globaldata->st << endl;
 		cout << "Conductivity: " << globaldata->lambda << endl;
 		cout << "Alpha: " << globaldata->alpha << endl;
@@ -236,8 +236,8 @@ void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list
 		cout << "Specific Heat: " << globaldata->cp << endl;
 		cout << "Nodes Numer: " << grid->nN << endl;
 		cout << "Elements Number: " << grid->nE << endl;
-		cout << "\nNodes: " << endl;
-		*/
+		cout << "\nNodes: " << endl;*/
+		
 		getline(dataFile, line);
 		Node node;
 		for (int i = 0; i < grid->nN; i++) {
@@ -260,11 +260,11 @@ void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list
 			listOfNodes->insert(listOfNodes->end(), node);
 		}
 
-		/*
-		list<Node>::iterator it;
+		
+		/*list<Node>::iterator it;
 		for (it = listOfNodes->begin(); it != listOfNodes->end(); ++it) printf("%d  %.10f  %.10f\n", it->n, it->x, it->y);
-		*/
-		//cout << "\nElements: " << endl;
+		cout << "\nElements: " << endl;*/
+
 		getline(dataFile, line);
 		for (int i = 0; i < grid->nE; i++) {
 			getline(dataFile, line);
@@ -288,10 +288,10 @@ void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list
 
 		}
 
-		/*
-		list<Element>::iterator it2;
-		for (it2 = listOfElements->begin(); it2 != listOfElements->end(); ++it2) cout << it2->ID[0] << " " << it2->ID[1] << " " << it2->ID[2] << " " << it2->ID[3] << " " << it2->ID[4] << endl;
-		*/
+		
+		/*list<Element>::iterator it2;
+		for (it2 = listOfElements->begin(); it2 != listOfElements->end(); ++it2) cout << it2->ID[0] << " " << it2->ID[1] << " " << it2->ID[2] << " " << it2->ID[3] << " " << it2->ID[4] << endl;*/
+		
 		getline(dataFile, line);
 		vector<string> useless;
 		stringstream ss(line);
