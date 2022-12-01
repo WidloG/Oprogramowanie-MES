@@ -173,7 +173,7 @@ struct Elem16 {
 };
 
 //scheme for caculating derivatives with 2,3,4 points
-void derivativesScheme(int i, Elem4* elem4, Elem9* elem9, int numOfPoints){
+void derivativesScheme(int i, Elem4* elem4, Elem9* elem9, Elem16* elem16, int numOfPoints) {
 
 	if (numOfPoints == 2) {
 		nKsi[0] = -0.25 * (1 - elem4->pcEta[i]);
@@ -196,6 +196,17 @@ void derivativesScheme(int i, Elem4* elem4, Elem9* elem9, int numOfPoints){
 		nEta[1] = -0.25 * (1 + elem9->pcKsi[i]);
 		nEta[2] = 0.25 * (1 + elem9->pcKsi[i]);
 		nEta[3] = 0.25 * (1 - elem9->pcKsi[i]);
+	}
+	else if (numOfPoints == 4) {
+		nKsi[0] = -0.25 * (1 - elem16->pcEta[i]);
+		nKsi[1] = 0.25 * (1 - elem16->pcEta[i]);
+		nKsi[2] = 0.25 * (1 + elem16->pcEta[i]);
+		nKsi[3] = -0.25 * (1 + elem16->pcEta[i]);
+
+		nEta[0] = -0.25 * (1 - elem16->pcKsi[i]);
+		nEta[1] = -0.25 * (1 + elem16->pcKsi[i]);
+		nEta[2] = 0.25 * (1 + elem16->pcKsi[i]);
+		nEta[3] = 0.25 * (1 - elem16->pcKsi[i]);
 	}
 	
 }
@@ -299,15 +310,12 @@ void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list
 double function1D(double x) {
 	return 2 * x * x + 3 * x - 8;
 }
-
 double function2D(double ksi, double eta) {
 	return -5 * ksi * ksi * eta + 2 * ksi * eta * eta + 10;
 }
-
 double func(double x) {
 	return 3 * x * x - 6 * x + 1;
 }
-
 
 //integration without bounds, but with 2 dimentions
 double integration(Integration* scheme, int numOfPoints, int numOfDimention) {
@@ -354,47 +362,64 @@ double integrationBounds(Integration* scheme, int numOfPoints, double x1, double
 	return result;
 }
 
-//counting derivatives in two arrays for Elem4
-void derivativesElem(Elem4* elem4, Elem9* elem9, void(*derivativesScheme)(int,Elem4*,Elem9*, int), int numOfPoints) {
+//counting derivatives
+void derivativesElem(Elem4* elem4, Elem9* elem9,Elem16* elem16, void(*derivativesScheme)(int,Elem4*,Elem9*,Elem16*, int), int numOfPoints) {
 
 	if (numOfPoints == 2) {
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
-				derivativesScheme(i, elem4,elem9, 2);
+				derivativesScheme(i, elem4, elem9, elem16, 2);
 				elem4->tabKsi[i][j] = nKsi[j];
 			}
 		}
 
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
-				derivativesScheme(i, elem4,elem9, 2);
+				derivativesScheme(i, elem4, elem9, elem16, 2);
 				elem4->tabEta[i][j] = nEta[j];
 			}
 		}
 
-		elem4->printElem();
+		//elem4->printElem();
 	}
-
-	if (numOfPoints == 3) {
+	else if (numOfPoints == 3) {
 		for (int i = 0; i < 9; i++) {
 			for (int j = 0; j < 4; j++) {
-				derivativesScheme(i, elem4, elem9, 3);
+				derivativesScheme(i, elem4, elem9, elem16, 3);
 				elem9->tabKsi[i][j] = nKsi[j];
 			}
 		}
 
 		for (int i = 0; i < 9; i++) {
 			for (int j = 0; j < 4; j++) {
-				derivativesScheme(i, elem4, elem9, 3);
+				derivativesScheme(i, elem4, elem9, elem16, 3);
 				elem9->tabEta[i][j] = nEta[j];
 			}
 		}
-		elem9->printElem();
+		//elem9->printElem();
 	}
+	else if (numOfPoints == 4) {
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 4; j++) {
+				derivativesScheme(i, elem4, elem9, elem16, 4);
+				elem16->tabKsi[i][j] = nKsi[j];
+			}
+		}
+
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 4; j++) {
+				derivativesScheme(i, elem4, elem9, elem16, 4);
+				elem16->tabEta[i][j] = nEta[j];
+			}
+		}
+		//elem16->printElem();
+	}
+	else cout << "Wrong number of Points" << endl;
 }
 
-void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *elem9) {
-	derivativesElem(elem4, elem9, &derivativesScheme, numOfPoints);
+//counting Matrix H
+void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *elem9, Elem16* elem16) {
+	derivativesElem(elem4, elem9, elem16, &derivativesScheme, numOfPoints);
 	numOfPoints *= numOfPoints;
 
 	double x[4] = {0, 0.025, 0.025,0};
@@ -434,13 +459,23 @@ void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *ele
 			}
 		}
 	}
-	else {
+	else if (numOfPoints == 9) {
 		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
 				jacobian[i][0] += elem9->tabKsi[i][j] * x[j];
 				jacobian[i][1] += elem9->tabKsi[i][j] * y[j];
 				jacobian[i][2] += elem9->tabEta[i][j] * x[j];
 				jacobian[i][3] += elem9->tabEta[i][j] * y[j];
+			}
+		}
+	}
+	else if (numOfPoints == 16) {
+		for (int i = 0; i < numOfPoints; i++) {
+			for (int j = 0; j < 4; j++) {
+				jacobian[i][0] += elem16->tabKsi[i][j] * x[j];
+				jacobian[i][1] += elem16->tabKsi[i][j] * y[j];
+				jacobian[i][2] += elem16->tabEta[i][j] * x[j];
+				jacobian[i][3] += elem16->tabEta[i][j] * y[j];
 			}
 		}
 	}
@@ -467,7 +502,7 @@ void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *ele
 			}
 		}
 	}
-	else {
+	else if (numOfPoints == 9) {
 		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
 				tabX[i][j] = jacobian[i][0] * elem9->tabKsi[i][j] + jacobian[i][1] * elem9->tabEta[i][j];
@@ -476,6 +511,18 @@ void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *ele
 		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
 				tabY[i][j] = jacobian[i][2] * elem9->tabKsi[i][j] + jacobian[i][3] * elem9->tabEta[i][j];
+			}
+		}
+	}
+	else if (numOfPoints == 16) {
+		for (int i = 0; i < numOfPoints; i++) {
+			for (int j = 0; j < 4; j++) {
+				tabX[i][j] = jacobian[i][0] * elem16->tabKsi[i][j] + jacobian[i][1] * elem16->tabEta[i][j];
+			}
+		}
+		for (int i = 0; i < numOfPoints; i++) {
+			for (int j = 0; j < 4; j++) {
+				tabY[i][j] = jacobian[i][2] * elem16->tabKsi[i][j] + jacobian[i][3] * elem16->tabEta[i][j];
 			}
 		}
 	}
@@ -489,6 +536,10 @@ void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *ele
 				else if (numOfPoints == 9) {
 					matrixH[i][j] += (30 * (tabX[k][j] * tabX[k][i] + tabY[k][j] * tabY[k][i]) * detJacobianMinus[k])
 						* w1For3Pc[k] * w2For3Pc[k];
+				}
+				else if (numOfPoints == 16) {
+					matrixH[i][j] += (30 * (tabX[k][j] * tabX[k][i] + tabY[k][j] * tabY[k][i]) * detJacobianMinus[k])
+						* w1For4Pc[k] * w2For4Pc[k];
 				}
 
 			}
@@ -512,34 +563,19 @@ int main() {
 	list<Element> listOfElements;
 	Elem4 elem4;
 	Elem9 elem9;
+	Elem16 elem16;
 
 	//reading the file
 	readFile(&globaldata, &grid, &listOfNodes, &listOfElements);
 
 	//results of integration
 	//solution integration(&scheme, numOfPoints, numOfDimention)
-	/*
-	cout << "Integration without bounds for f(x) = 2x^2 + 3x - 8: \n" << endl;
-	cout << "Integration for 1D and 2 points: " << integration(&scheme, 2, 1) << endl;
-	cout << "Integration for 1D and 3 points: " << integration(&scheme, 3, 1) << endl << endl;;
-	cout << "Integration without bounds for f(x) = -5ksi^2 * eta + 2 * ksi * eta^2 + 10: \n" << endl;
-	cout << "Integration for 2D and 2 points: " << integration(&scheme, 2, 2) << endl;
-	cout << "Integration for 2D and 3 points: " << integration(&scheme, 3, 2) << endl << endl;
-	cout << "Integration with bounds [-3,6.5] for f(x) = 3x^2 - 6x + 1: \n" << endl;
-	cout << "Integration for 1D and 2 points:" << integrationBounds(&scheme, 2, -3, 6.5) << endl;
-	cout << "Integration for 1D and 3 points:" << integrationBounds(&scheme, 3, -3, 6.5) << endl << endl;
-	*/
-	
-	
+
 	//results of derivatives
-	//solution derivativesElem(&elem4, &elem9, &derivativesScheme4, &derivativesScheme9, numOfPoints)
-	//derivativesElem(&elem4, &elem9, &derivativesScheme, 2);
-	//derivativesElem(&elem4, &elem9, &derivativesScheme, 3);
+	//solution derivativesElem(&elem4, &elem9, &elem16, &derivativesScheme, numOfPoints)
 
 	//results of MatrixH
-	//solution matrixH(numofPoints, &listOfNodes, &elem4, &elem9);
-	//matrixH(2, &listOfNodes, &elem4, &elem9);
-	//matrixH(3, &listOfNodes, &elem4, &elem9);
+	//solution matrixH(numofPoints, &listOfNodes, &elem4, &elem9, &elem16);
 
 	return 0;
 }
