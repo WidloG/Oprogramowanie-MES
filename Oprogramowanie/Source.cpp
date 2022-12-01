@@ -10,6 +10,16 @@
 
 using namespace std;
 double nKsi[4], nEta[4];
+static double w1For3Pc[9] = { 5.0/9.0, 8.0/9.0,
+5.0 / 9.0, 5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0, 5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0 };
+static double w2For3Pc[9] = { 5.0 / 9.0,
+5.0 / 9.0, 5.0 / 9.0, 8.0 / 9.0, 8.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0, 5.0 / 9.0, 5.0 / 9.0 };
+static double w1For4Pc[16] = { (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0,
+							(18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0,
+							(18.0 + sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0 };
+static double w2For4Pc[16] = { (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0,(18.0 + sqrt(30.0)) / 36.0,
+							(18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0,(18.0 - sqrt(30.0)) / 36.0,
+							(18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0 };
 
 //coordinates of single node
 struct Node {
@@ -47,10 +57,10 @@ struct Integration {
 	double weights2[2] = { 1,1 };
 
 	double nodes3[3] = { -sqrt(0.6), 0 , sqrt(0.6) };
-	double weights3[3] = { 0.55555, 0.88888, 0.55555 };
+	double weights3[3] = { 5.0/9.0, 8.0/9.0, 5.0/9.0 };
 };
 
-//dynamic arrays for derivatives with 2points
+//structure for derivatives with 2points
 struct Elem4 {
 	double** tabKsi = new double*[4];
 	double** tabEta = new double*[4];
@@ -84,14 +94,13 @@ struct Elem4 {
 	}
 };
 
-//dynamic arrays for derivatives with 3points
+//structure for derivatives with 3points
 struct Elem9 {
 	double** tabKsi = new double* [9];
 	double** tabEta = new double* [9];
 
 	double pcKsi[9] = { -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0 ,sqrt(0.6) };
 	double pcEta[9] = { -sqrt(0.6), -sqrt(0.6), -sqrt(0.6), 0, 0, 0, sqrt(0.6), sqrt(0.6) , sqrt(0.6) };
-
 	Elem9() {
 		for (int i = 0; i < 9; i++) {
 			tabKsi[i] = new double[4];
@@ -119,36 +128,76 @@ struct Elem9 {
 
 };
 
-//scheme for caculating derivatives with 2 points
-void derivativesScheme4(int i) {
-	double pcKsi[4] = { -1 / sqrt(3), 1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3) };
-	double pcEta[4] = { -1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3) };
+//structure for derivatives with 4points
+struct Elem16 {
+	double** tabKsi = new double* [16];
+	double** tabEta = new double* [16];
 
-	nKsi[0] = -0.25 * (1 - pcEta[i]); 
-	nKsi[1] = 0.25 * (1 - pcEta[i]);
-	nKsi[2] = 0.25 * (1 + pcEta[i]);
-	nKsi[3] = -0.25 * (1 + pcEta[i]);
+	double pcKsi[16] = { - sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)), -sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)), -sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)),
+		-sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)), -sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)),  -sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)),
+		-sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)) , -sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)) , sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)) ,
+		sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)) , sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)) , sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)),
+		sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)), sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)) , sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)) ,
+		sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)) };
+	double pcEta[16] = { -sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)), -sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)), sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)),
+		sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)), -sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)), -sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)),
+		sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)), sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)),-sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)),
+		-sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)), sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)), sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)),
+		-sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)), -sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)), sqrt((3.0 / 7.0) - (2.0 / 7.0) * sqrt(6.0 / 5.0)),
+		sqrt((3.0 / 7.0) + (2.0 / 7.0) * sqrt(6.0 / 5.0)) };
 
-	nEta[0] = -0.25 * (1 - pcKsi[i]);
-	nEta[1] = -0.25 * (1 + pcKsi[i]);
-	nEta[2] = 0.25 * (1 + pcKsi[i]);
-	nEta[3] = 0.25 * (1 - pcKsi[i]);
-}
+	Elem16() {
+		for (int i = 0; i < 16; i++) {
+			tabKsi[i] = new double[4];
+			tabEta[i] = new double[4];
+		}
+	}
 
-//scheme for caculating derivatives with 3 points
-void derivativesScheme9(int i) {
-	double pcKsi[9] = { -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0 ,sqrt(0.6) };
-	double pcEta[9] = { -sqrt(0.6), -sqrt(0.6), -sqrt(0.6), 0, 0, 0, sqrt(0.6), sqrt(0.6) , sqrt(0.6) };
+	void printElem() {
+		cout << "\ndN/dKsi\n";
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 4; j++) {
+				cout << tabKsi[i][j] << " ";
+			}
+			cout << endl;
+		}
 
-	nKsi[0] = -0.25 * (1 - pcEta[i]);
-	nKsi[1] = 0.25 * (1 - pcEta[i]);
-	nKsi[2] = 0.25 * (1 + pcEta[i]);
-	nKsi[3] = -0.25 * (1 + pcEta[i]);
+		cout << "\ndN/dEta\n";
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 4; j++) {
+				cout << tabEta[i][j] << " ";
+			}
+			cout << endl;
+		}
+	}
+};
 
-	nEta[0] = -0.25 * (1 - pcKsi[i]);
-	nEta[1] = -0.25 * (1 + pcKsi[i]);
-	nEta[2] = 0.25 * (1 + pcKsi[i]);
-	nEta[3] = 0.25 * (1 - pcKsi[i]);
+//scheme for caculating derivatives with 2,3,4 points
+void derivativesScheme(int i, Elem4* elem4, Elem9* elem9, int numOfPoints){
+
+	if (numOfPoints == 2) {
+		nKsi[0] = -0.25 * (1 - elem4->pcEta[i]);
+		nKsi[1] = 0.25 * (1 - elem4->pcEta[i]);
+		nKsi[2] = 0.25 * (1 + elem4->pcEta[i]);
+		nKsi[3] = -0.25 * (1 + elem4->pcEta[i]);
+
+		nEta[0] = -0.25 * (1 - elem4->pcKsi[i]);
+		nEta[1] = -0.25 * (1 + elem4->pcKsi[i]);
+		nEta[2] = 0.25 * (1 + elem4->pcKsi[i]);
+		nEta[3] = 0.25 * (1 - elem4->pcKsi[i]);
+	}
+	else if (numOfPoints == 3) {
+		nKsi[0] = -0.25 * (1 - elem9->pcEta[i]);
+		nKsi[1] = 0.25 * (1 - elem9->pcEta[i]);
+		nKsi[2] = 0.25 * (1 + elem9->pcEta[i]);
+		nKsi[3] = -0.25 * (1 + elem9->pcEta[i]);
+
+		nEta[0] = -0.25 * (1 - elem9->pcKsi[i]);
+		nEta[1] = -0.25 * (1 + elem9->pcKsi[i]);
+		nEta[2] = 0.25 * (1 + elem9->pcKsi[i]);
+		nEta[3] = 0.25 * (1 - elem9->pcKsi[i]);
+	}
+	
 }
 
 //reading the file
@@ -259,6 +308,7 @@ double func(double x) {
 	return 3 * x * x - 6 * x + 1;
 }
 
+
 //integration without bounds, but with 2 dimentions
 double integration(Integration* scheme, int numOfPoints, int numOfDimention) {
 	double result = 0;
@@ -305,52 +355,47 @@ double integrationBounds(Integration* scheme, int numOfPoints, double x1, double
 }
 
 //counting derivatives in two arrays for Elem4
-void derivativesElem(Elem4* elem4, Elem9* elem9, void(*derivativesScheme4)(int), void(*derivativesScheme9)(int), int numOfPoints){
+void derivativesElem(Elem4* elem4, Elem9* elem9, void(*derivativesScheme)(int,Elem4*,Elem9*, int), int numOfPoints) {
 
 	if (numOfPoints == 2) {
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
-				derivativesScheme4(i);
+				derivativesScheme(i, elem4,elem9, 2);
 				elem4->tabKsi[i][j] = nKsi[j];
 			}
 		}
 
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
-				derivativesScheme4(i);
+				derivativesScheme(i, elem4,elem9, 2);
 				elem4->tabEta[i][j] = nEta[j];
 			}
 		}
 
-		//elem4->printElem();
+		elem4->printElem();
 	}
 
 	if (numOfPoints == 3) {
 		for (int i = 0; i < 9; i++) {
 			for (int j = 0; j < 4; j++) {
-				derivativesScheme9(i);
+				derivativesScheme(i, elem4, elem9, 3);
 				elem9->tabKsi[i][j] = nKsi[j];
 			}
 		}
 
 		for (int i = 0; i < 9; i++) {
 			for (int j = 0; j < 4; j++) {
-				derivativesScheme9(i);
+				derivativesScheme(i, elem4, elem9, 3);
 				elem9->tabEta[i][j] = nEta[j];
 			}
 		}
-		//elem9->printElem();
+		elem9->printElem();
 	}
 }
 
 void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *elem9) {
-	derivativesElem(elem4, elem9, &derivativesScheme4, &derivativesScheme9, numOfPoints);
+	derivativesElem(elem4, elem9, &derivativesScheme, numOfPoints);
 	numOfPoints *= numOfPoints;
-
-	double w1For3Pc[9] = { 0.555555556, 0.888888889, 0.555555556, 0.555555556, 0.888888889, 0.555555556, 0.555555556, 0.888888889, 0.555555556 };
-	double w2For3Pc[9] = { 0.555555556, 0.55555555656, 0.555555556, 0.888888889, 0.888888889, 0.888888889, 0.555555556, 0.555555556, 0.555555556 };
-	double w1For4Pc[16] = { 0.347855, 0.652145, 0.652145, 0.347855, 0.347855, 0.652145, 0.652145, 0.347855, 0.347855, 0.652145, 0.652145, 0.347855, 0.347855, 0.652145, 0.652145, 0.347855 };
-	double w2For4Pc[16] = { 0.347855, 0.347855, 0.347855, 0.347855, 0.652145, 0.652145, 0.652145, 0.652145, 0.652145, 0.652145, 0.652145, 0.652145, 0.347855, 0.347855, 0.347855, 0.347855 };
 
 	double x[4] = {0, 0.025, 0.025,0};
 	double y[4] = {0, 0, 0.025, 0.025};
@@ -459,7 +504,6 @@ void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *ele
 }
 
 int main() {
-
 	//structures and lists go brrrrrr
 	Grid grid;
 	GlobalData globaldata;
@@ -485,11 +529,12 @@ int main() {
 	cout << "Integration for 1D and 2 points:" << integrationBounds(&scheme, 2, -3, 6.5) << endl;
 	cout << "Integration for 1D and 3 points:" << integrationBounds(&scheme, 3, -3, 6.5) << endl << endl;
 	*/
-
+	
+	
 	//results of derivatives
 	//solution derivativesElem(&elem4, &elem9, &derivativesScheme4, &derivativesScheme9, numOfPoints)
-	//derivativesElem(&elem4, &elem9, &derivativesScheme4, &derivativesScheme9, 2);
-	//derivativesElem(&elem4, &elem9, &derivativesScheme4, &derivativesScheme9, 3);
+	//derivativesElem(&elem4, &elem9, &derivativesScheme, 2);
+	//derivativesElem(&elem4, &elem9, &derivativesScheme, 3);
 
 	//results of MatrixH
 	//solution matrixH(numofPoints, &listOfNodes, &elem4, &elem9);
@@ -497,5 +542,4 @@ int main() {
 	//matrixH(3, &listOfNodes, &elem4, &elem9);
 
 	return 0;
-
 }
