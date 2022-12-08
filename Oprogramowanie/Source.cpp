@@ -10,21 +10,20 @@
 
 using namespace std;
 double nKsi[4], nEta[4];
-static double w1For3Pc[9] = { 5.0/9.0, 8.0/9.0,
+static double w1for3[9] = { 5.0/9.0, 8.0/9.0,
 5.0 / 9.0, 5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0, 5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0 };
-static double w2For3Pc[9] = { 5.0 / 9.0,
+static double w2for3[9] = { 5.0 / 9.0,
 5.0 / 9.0, 5.0 / 9.0, 8.0 / 9.0, 8.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0, 5.0 / 9.0, 5.0 / 9.0 };
-static double w1For4Pc[16] = { (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0,
+static double w1for4[16] = { (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0,
 							(18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0,
 							(18.0 + sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0 };
-static double w2For4Pc[16] = { (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0,(18.0 + sqrt(30.0)) / 36.0,
+static double w2for4[16] = { (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0,(18.0 + sqrt(30.0)) / 36.0,
 							(18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 + sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0,(18.0 - sqrt(30.0)) / 36.0,
 							(18.0 - sqrt(30.0)) / 36.0, (18.0 - sqrt(30.0)) / 36.0 };
 
 //coordinates of single node
 struct Node {
 	float x, y;
-	int n;	
 	bool bc; 
 };
 
@@ -38,8 +37,8 @@ struct Grid {
 	int nN = 1; //number of nodes
 	int nE = 1; //number of elements
 
-	vector <Node> nodes;
-	vector <Element> elements;
+	vector <Node> nodes; //all of the nodes on grid
+	vector <Element> elements; ////all of the elements on grid
 };
 
 //global data which come from the file
@@ -223,6 +222,8 @@ void readFile(GlobalData* globaldata, Grid* grid) {
 
 	if (dataFile.is_open()) {
 		string name;
+
+		//reading single values
 		dataFile >> name >> globaldata->t >> name >> globaldata->st >> name >> globaldata->lambda >> name >> globaldata->alpha >> name >>
 			globaldata->tot >> name >> globaldata->it >> name >> globaldata->d >> name >> globaldata->cp >> name >> name >> grid->nN >>
 			name >> name >> grid->nE >> name;
@@ -239,6 +240,7 @@ void readFile(GlobalData* globaldata, Grid* grid) {
 		cout << "Elements Number: " << grid->nE << endl;
 		cout << "\nNodes: " << endl;*/
 		
+		//reading nodes into vector
 		Node node;
 		for (int i = 0; i < grid->nN; i++) {
 			
@@ -253,6 +255,7 @@ void readFile(GlobalData* globaldata, Grid* grid) {
 		getline(dataFile, line);
 		getline(dataFile, line);
 		
+		//reading elements into vector
 		Element element;
 		for (int i = 0; i < grid->nE; i++) {
 			int n, el[4] = { 0,0,0,0 };
@@ -270,7 +273,6 @@ void readFile(GlobalData* globaldata, Grid* grid) {
 		getline(dataFile, line);
 		getline(dataFile, line);
 		//cout << line;
-	
 	}
 	dataFile.close();
 }
@@ -504,16 +506,17 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 				}
 				else if (numOfPoints == 9) {
 					matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][j] + tabY[i][k] * tabY[i][j]) * detJacobianMinus[i])
-						* w1For3Pc[i] * w2For3Pc[i];
+						* w1for3[i] * w2for3[i];
 				}
 				else if (numOfPoints == 16) {
 					matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][k] + tabY[i][k] * tabY[i][i]) * detJacobianMinus[i])
-						* w1For4Pc[i] * w2For4Pc[i];
+						* w1for4[i] * w2for4[i];
 				}
 			}
 		}
 	}
  
+	//print
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
 			cout << matrixH[i][j] << " ";
@@ -531,7 +534,6 @@ int main() {
 	Grid grid;
 	GlobalData globaldata;
 	Integration scheme;
-	//vector<Node> nodes;
 	list<Element> listOfElements;
 	Elem4 elem4; Elem9 elem9; Elem16 elem16;
 
@@ -547,20 +549,18 @@ int main() {
 	//results of MatrixH
 	//solution matrixH(numofPoints, &listOfNodes, &elem4, &elem9, &elem16);
 	
-	
+	//matrixH with the data given
 	for (int i = 0; i < grid.nE; i++) {
 		double x[4], y[4];
 		int idN[4];
 		for (int j = 0; j < 4; j++) {
 			idN[j] = grid.elements[i].ID[j];
-			int sub = idN[j] - 1;
-			x[j] = grid.nodes[sub].x;
-			y[j] = grid.nodes[sub].y;
+			x[j] = grid.nodes[idN[j] - 1].x;
+			y[j] = grid.nodes[idN[j] - 1].y;
 		}
 		matrixH(2, &elem4, &elem9, &elem16, &grid, x, y, &globaldata);
 		cout << endl;
 	}
 	
-
 	return 0;
 }
