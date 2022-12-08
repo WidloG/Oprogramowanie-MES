@@ -30,13 +30,16 @@ struct Node {
 
 //the id number and it's value
 struct Element {
-	int ID[5];
+	int ID[4];
 };
 
 //grid with numbers of nodes and elements
 struct Grid {
 	int nN = 1; //number of nodes
 	int nE = 1; //number of elements
+
+	vector <Node> nodes;
+	vector <Element> elements;
 };
 
 //global data which come from the file
@@ -212,11 +215,11 @@ void derivativesScheme(int i, Elem4* elem4, Elem9* elem9, Elem16* elem16, int nu
 }
 
 //reading the file
-void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list <Element>* listOfElements) {
-
+void readFile(GlobalData* globaldata, Grid* grid) {
+	string line;
+	int n, number;
 	fstream dataFile;
 	dataFile.open("Test1_4_4.txt", ios::in);
-	string line;
 
 	if (dataFile.is_open()) {
 		string name;
@@ -224,8 +227,6 @@ void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list
 			globaldata->tot >> name >> globaldata->it >> name >> globaldata->d >> name >> globaldata->cp >> name >> name >> grid->nN >>
 			name >> name >> grid->nE >> name;
 		
-		//wypisywanie
-	
 		/*cout << "Simulation Time: " << globaldata->t << endl;
 		cout << "Simulation Step Time: " << globaldata->st << endl;
 		cout << "Conductivity: " << globaldata->lambda << endl;
@@ -238,70 +239,38 @@ void readFile(GlobalData* globaldata, Grid* grid, list <Node> *listOfNodes, list
 		cout << "Elements Number: " << grid->nE << endl;
 		cout << "\nNodes: " << endl;*/
 		
-		getline(dataFile, line);
 		Node node;
 		for (int i = 0; i < grid->nN; i++) {
-			getline(dataFile, line);
-			vector<string> useless;
-			stringstream ss(line);
-
-			while (ss.good()) {
-				string useLess;
-				getline(ss, useLess, ',');
-				useless.push_back(useLess);
-			}
-
-			//konwersja ze stringa do liczby
-			node.n = atoi(useless[0].c_str());
-			node.x = atof(useless[1].c_str());
-			node.y = atof(useless[2].c_str());
-
-			//dodawanie gotowych nodeów do listy
-			listOfNodes->insert(listOfNodes->end(), node);
+			
+			float x, y, n;
+			dataFile >> n >> name >> x >> name >> y;
+			node.x = x;
+			node.y = y;
+			
+			//printf("%d %.10f  %.10f\n",i, x, y);
+			grid->nodes.push_back(node);
 		}
-
-		
-		/*list<Node>::iterator it;
-		for (it = listOfNodes->begin(); it != listOfNodes->end(); ++it) printf("%d  %.10f  %.10f\n", it->n, it->x, it->y);
-		cout << "\nElements: " << endl;*/
-
 		getline(dataFile, line);
+		getline(dataFile, line);
+		
+		Element element;
 		for (int i = 0; i < grid->nE; i++) {
-			getline(dataFile, line);
-			vector<string> useless;
-			stringstream ss(line);
+			int n, el[4] = { 0,0,0,0 };
 
-			while (ss.good()) {
-				string useLess;
-				getline(ss, useLess, ',');
-				useless.push_back(useLess);
-			}
+			dataFile >> n >> name >> el[0] >> name >> el[1] >> name >> el[2] >> name >> el[3];
 
-			Element element;
-			element.ID[0] = atoi(useless[0].c_str());
-			element.ID[1] = atoi(useless[1].c_str());
-			element.ID[2] = atoi(useless[2].c_str());
-			element.ID[3] = atoi(useless[3].c_str());
-			element.ID[4] = atoi(useless[4].c_str());
-
-			listOfElements->insert(listOfElements->end(), element);
-
+			element.ID[0] = el[0];
+			element.ID[1] = el[1];
+			element.ID[2] = el[2];
+			element.ID[3] = el[3];
+			
+			//printf("%d %d %d %d %d\n", i, el[0], el[1], el[2], el[3]);
+			grid->elements.push_back(element);
 		}
-
-		
-		/*list<Element>::iterator it2;
-		for (it2 = listOfElements->begin(); it2 != listOfElements->end(); ++it2) cout << it2->ID[0] << " " << it2->ID[1] << " " << it2->ID[2] << " " << it2->ID[3] << " " << it2->ID[4] << endl;*/
-		
 		getline(dataFile, line);
-		vector<string> useless;
-		stringstream ss(line);
-
-		while (ss.good()) {
-			string useLess;
-			getline(ss, useLess, ',');
-			useless.push_back(useLess);
-		}
-		// teraz w useless jest zaczytane liczby BC
+		getline(dataFile, line);
+		//cout << line;
+	
 	}
 	dataFile.close();
 }
@@ -418,17 +387,13 @@ void derivativesElem(Elem4* elem4, Elem9* elem9,Elem16* elem16, void(*derivative
 }
 
 //counting Matrix H
-void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *elem9, Elem16* elem16) {
+void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* grid, double x[], double y[], GlobalData* globaldata) {
 	derivativesElem(elem4, elem9, elem16, &derivativesScheme, numOfPoints);
 	numOfPoints *= numOfPoints;
-
-	double x[4] = {0, 0.025, 0.025,0};
-	double y[4] = {0, 0, 0.025, 0.025};
+	
 	double** jacobian = new double* [numOfPoints];
 	double** tabX = new double* [numOfPoints];
 	double** tabY = new double* [numOfPoints];
-	
-
 	double** matrixH = new double* [numOfPoints];
 	for (int i = 0; i < numOfPoints; i++) { 
 		jacobian[i] = new double[4];
@@ -449,6 +414,7 @@ void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *ele
 		}
 	}
 
+	//jacobian
 	if (numOfPoints == 4) {
 		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
@@ -479,7 +445,8 @@ void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *ele
 			}
 		}
 	}
-	
+
+	// 1/detJ
 	for (int i = 0; i < numOfPoints; i++) {
 		detJacobianMinus[i] = (jacobian[i][0] * jacobian[i][3] - jacobian[i][1] * jacobian[i][2]);
 		detJacobian[i] = 1 / detJacobianMinus[i];
@@ -490,6 +457,7 @@ void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *ele
 		}
 	}
 
+	//array with dX and dY
 	if (numOfPoints == 4) {
 		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
@@ -526,26 +494,26 @@ void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *ele
 			}
 		}
 	}
- 
-	for (int k = 0; k < numOfPoints; k++) {
-		for (int i = 0; i < 4; i++) {
-			for (int j = 0; j < 4; j++) {
+
+	//final Matrix H
+	for (int i = 0; i < numOfPoints; i++) {
+		for (int j = 0; j < 4; j++) {
+			for (int k = 0; k < 4; k++) {
 				if (numOfPoints == 4) {
-					matrixH[i][j] += (30 * (tabX[k][j] * tabX[k][i] + tabY[k][j] * tabY[k][i]) * detJacobianMinus[k]);
+					matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][j] + tabY[i][k] * tabY[i][j]) * detJacobianMinus[i]);
 				}
 				else if (numOfPoints == 9) {
-					matrixH[i][j] += (30 * (tabX[k][j] * tabX[k][i] + tabY[k][j] * tabY[k][i]) * detJacobianMinus[k])
-						* w1For3Pc[k] * w2For3Pc[k];
+					matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][j] + tabY[i][k] * tabY[i][j]) * detJacobianMinus[i])
+						* w1For3Pc[i] * w2For3Pc[i];
 				}
 				else if (numOfPoints == 16) {
-					matrixH[i][j] += (30 * (tabX[k][j] * tabX[k][i] + tabY[k][j] * tabY[k][i]) * detJacobianMinus[k])
-						* w1For4Pc[k] * w2For4Pc[k];
+					matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][k] + tabY[i][k] * tabY[i][i]) * detJacobianMinus[i])
+						* w1For4Pc[i] * w2For4Pc[i];
 				}
-
 			}
 		}
 	}
-
+ 
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
 			cout << matrixH[i][j] << " ";
@@ -554,19 +522,21 @@ void matrixH(int numOfPoints, list <Node>* listOfNodes, Elem4* elem4, Elem9 *ele
 	}
 }
 
+void aggregation() {
+
+}
+
 int main() {
 	//structures and lists go brrrrrr
 	Grid grid;
 	GlobalData globaldata;
 	Integration scheme;
-	list<Node> listOfNodes;
+	//vector<Node> nodes;
 	list<Element> listOfElements;
-	Elem4 elem4;
-	Elem9 elem9;
-	Elem16 elem16;
+	Elem4 elem4; Elem9 elem9; Elem16 elem16;
 
 	//reading the file
-	readFile(&globaldata, &grid, &listOfNodes, &listOfElements);
+	readFile(&globaldata, &grid);
 
 	//results of integration
 	//solution integration(&scheme, numOfPoints, numOfDimention)
@@ -576,6 +546,21 @@ int main() {
 
 	//results of MatrixH
 	//solution matrixH(numofPoints, &listOfNodes, &elem4, &elem9, &elem16);
+	
+	
+	for (int i = 0; i < grid.nE; i++) {
+		double x[4], y[4];
+		int idN[4];
+		for (int j = 0; j < 4; j++) {
+			idN[j] = grid.elements[i].ID[j];
+			int sub = idN[j] - 1;
+			x[j] = grid.nodes[sub].x;
+			y[j] = grid.nodes[sub].y;
+		}
+		matrixH(2, &elem4, &elem9, &elem16, &grid, x, y, &globaldata);
+		cout << endl;
+	}
+	
 
 	return 0;
 }
