@@ -210,13 +210,12 @@ void derivativesScheme(int i, Elem4* elem4, Elem9* elem9, Elem16* elem16, int nu
 		nEta[2] = 0.25 * (1 + elem16->pcKsi[i]);
 		nEta[3] = 0.25 * (1 - elem16->pcKsi[i]);
 	}
-	
 }
 
 //reading the file
 void readFile(GlobalData* globaldata, Grid* grid) {
 	string line;
-	int n, number;
+	//int n, number;
 	fstream dataFile;
 	dataFile.open("Test1_4_4.txt", ios::in);
 
@@ -389,143 +388,161 @@ void derivativesElem(Elem4* elem4, Elem9* elem9,Elem16* elem16, void(*derivative
 }
 
 //counting Matrix H
-void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* grid, double x[], double y[], GlobalData* globaldata) {
+void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* grid, GlobalData* globaldata) {
 	derivativesElem(elem4, elem9, elem16, &derivativesScheme, numOfPoints);
 	numOfPoints *= numOfPoints;
-	
-	double** jacobian = new double* [numOfPoints];
-	double** tabX = new double* [numOfPoints];
-	double** tabY = new double* [numOfPoints];
-	double** matrixH = new double* [numOfPoints];
-	for (int i = 0; i < numOfPoints; i++) { 
-		jacobian[i] = new double[4];
-		tabX[i] = new double[4];
-		tabY[i] = new double[4];
-		matrixH[i] = new double[4];
-	}
-
-	double* detJacobian = new double[numOfPoints];
-	double* detJacobianMinus = new double[numOfPoints];
-
-	for (int i = 0; i < numOfPoints; i++){
+	for (int i = 0; i < grid->nE; i++) {
+		double x[4], y[4];
+		int idN[4];
 		for (int j = 0; j < 4; j++) {
-			jacobian[i][j] = 0;
-			matrixH[i][j] = 0;
-			detJacobian[i] = 0;
-			detJacobianMinus[i] = 0;
+			idN[j] = grid->elements[i].ID[j];
+			x[j] = grid->nodes[idN[j] - 1].x;
+			y[j] = grid->nodes[idN[j] - 1].y;
 		}
-	}
 
-	//jacobian
-	if (numOfPoints == 4) {
+		double** jacobian = new double* [numOfPoints];
+		double** tabX = new double* [numOfPoints];
+		double** tabY = new double* [numOfPoints];
+		double** matrixH = new double* [numOfPoints];
 		for (int i = 0; i < numOfPoints; i++) {
-			for (int j = 0; j < 4; j++) {
-				jacobian[i][0] += elem4->tabKsi[i][j] * x[j];
-				jacobian[i][1] += elem4->tabKsi[i][j] * y[j];
-				jacobian[i][2] += elem4->tabEta[i][j] * x[j];
-				jacobian[i][3] += elem4->tabEta[i][j] * y[j];
-			}
+			jacobian[i] = new double[4];
+			tabX[i] = new double[4];
+			tabY[i] = new double[4];
+			matrixH[i] = new double[4];
 		}
-	}
-	else if (numOfPoints == 9) {
-		for (int i = 0; i < numOfPoints; i++) {
-			for (int j = 0; j < 4; j++) {
-				jacobian[i][0] += elem9->tabKsi[i][j] * x[j];
-				jacobian[i][1] += elem9->tabKsi[i][j] * y[j];
-				jacobian[i][2] += elem9->tabEta[i][j] * x[j];
-				jacobian[i][3] += elem9->tabEta[i][j] * y[j];
-			}
-		}
-	}
-	else if (numOfPoints == 16) {
-		for (int i = 0; i < numOfPoints; i++) {
-			for (int j = 0; j < 4; j++) {
-				jacobian[i][0] += elem16->tabKsi[i][j] * x[j];
-				jacobian[i][1] += elem16->tabKsi[i][j] * y[j];
-				jacobian[i][2] += elem16->tabEta[i][j] * x[j];
-				jacobian[i][3] += elem16->tabEta[i][j] * y[j];
-			}
-		}
-	}
 
-	// 1/detJ
-	for (int i = 0; i < numOfPoints; i++) {
-		detJacobianMinus[i] = (jacobian[i][0] * jacobian[i][3] - jacobian[i][1] * jacobian[i][2]);
-		detJacobian[i] = 1 / detJacobianMinus[i];
-	}
-	for (int i = 0; i < numOfPoints; i++) {
-		for (int j = 0; j < 4; j++) {
-			jacobian[i][j] *= detJacobian[i];
-		}
-	}
+		double* detJacobian = new double[numOfPoints];
+		double* detJacobianMinus = new double[numOfPoints];
 
-	//array with dX and dY
-	if (numOfPoints == 4) {
 		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
-				tabX[i][j] = jacobian[i][0] * elem4->tabKsi[i][j] + jacobian[i][1] * elem4->tabEta[i][j];
+				jacobian[i][j] = 0;
+				matrixH[i][j] = 0;
+				detJacobian[i] = 0;
+				detJacobianMinus[i] = 0;
 			}
 		}
-		for (int i = 0; i < numOfPoints; i++) {
-			for (int j = 0; j < 4; j++) {
-				tabY[i][j] = jacobian[i][2] * elem4->tabKsi[i][j] + jacobian[i][3] * elem4->tabEta[i][j];
-			}
-		}
-	}
-	else if (numOfPoints == 9) {
-		for (int i = 0; i < numOfPoints; i++) {
-			for (int j = 0; j < 4; j++) {
-				tabX[i][j] = jacobian[i][0] * elem9->tabKsi[i][j] + jacobian[i][1] * elem9->tabEta[i][j];
-			}
-		}
-		for (int i = 0; i < numOfPoints; i++) {
-			for (int j = 0; j < 4; j++) {
-				tabY[i][j] = jacobian[i][2] * elem9->tabKsi[i][j] + jacobian[i][3] * elem9->tabEta[i][j];
-			}
-		}
-	}
-	else if (numOfPoints == 16) {
-		for (int i = 0; i < numOfPoints; i++) {
-			for (int j = 0; j < 4; j++) {
-				tabX[i][j] = jacobian[i][0] * elem16->tabKsi[i][j] + jacobian[i][1] * elem16->tabEta[i][j];
-			}
-		}
-		for (int i = 0; i < numOfPoints; i++) {
-			for (int j = 0; j < 4; j++) {
-				tabY[i][j] = jacobian[i][2] * elem16->tabKsi[i][j] + jacobian[i][3] * elem16->tabEta[i][j];
-			}
-		}
-	}
 
-	//final Matrix H
-	for (int i = 0; i < numOfPoints; i++) {
-		for (int j = 0; j < 4; j++) {
-			for (int k = 0; k < 4; k++) {
-				if (numOfPoints == 4) {
-					matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][j] + tabY[i][k] * tabY[i][j]) * detJacobianMinus[i]);
-				}
-				else if (numOfPoints == 9) {
-					matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][j] + tabY[i][k] * tabY[i][j]) * detJacobianMinus[i])
-						* w1for3[i] * w2for3[i];
-				}
-				else if (numOfPoints == 16) {
-					matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][k] + tabY[i][k] * tabY[i][i]) * detJacobianMinus[i])
-						* w1for4[i] * w2for4[i];
+		//jacobian
+		if (numOfPoints == 4) {
+			for (int i = 0; i < numOfPoints; i++) {
+				for (int j = 0; j < 4; j++) {
+					jacobian[i][0] += elem4->tabKsi[i][j] * x[j];
+					jacobian[i][1] += elem4->tabKsi[i][j] * y[j];
+					jacobian[i][2] += elem4->tabEta[i][j] * x[j];
+					jacobian[i][3] += elem4->tabEta[i][j] * y[j];
 				}
 			}
 		}
-	}
- 
-	//print
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			cout << matrixH[i][j] << " ";
+		else if (numOfPoints == 9) {
+			for (int i = 0; i < numOfPoints; i++) {
+				for (int j = 0; j < 4; j++) {
+					jacobian[i][0] += elem9->tabKsi[i][j] * x[j];
+					jacobian[i][1] += elem9->tabKsi[i][j] * y[j];
+					jacobian[i][2] += elem9->tabEta[i][j] * x[j];
+					jacobian[i][3] += elem9->tabEta[i][j] * y[j];
+				}
+			}
+		}
+		else if (numOfPoints == 16) {
+			for (int i = 0; i < numOfPoints; i++) {
+				for (int j = 0; j < 4; j++) {
+					jacobian[i][0] += elem16->tabKsi[i][j] * x[j];
+					jacobian[i][1] += elem16->tabKsi[i][j] * y[j];
+					jacobian[i][2] += elem16->tabEta[i][j] * x[j];
+					jacobian[i][3] += elem16->tabEta[i][j] * y[j];
+				}
+			}
+		}
+
+		// 1/detJ
+		for (int i = 0; i < numOfPoints; i++) {
+			detJacobianMinus[i] = (jacobian[i][0] * jacobian[i][3] - jacobian[i][1] * jacobian[i][2]);
+			detJacobian[i] = 1 / detJacobianMinus[i];
+		}
+		for (int i = 0; i < numOfPoints; i++) {
+			for (int j = 0; j < 4; j++) {
+				jacobian[i][j] *= detJacobian[i];
+			}
+		}
+
+		//array with dX and dY
+		if (numOfPoints == 4) {
+			for (int i = 0; i < numOfPoints; i++) {
+				for (int j = 0; j < 4; j++) {
+					tabX[i][j] = jacobian[i][0] * elem4->tabKsi[i][j] + jacobian[i][1] * elem4->tabEta[i][j];
+				}
+			}
+			for (int i = 0; i < numOfPoints; i++) {
+				for (int j = 0; j < 4; j++) {
+					tabY[i][j] = jacobian[i][2] * elem4->tabKsi[i][j] + jacobian[i][3] * elem4->tabEta[i][j];
+				}
+			}
+		}
+		else if (numOfPoints == 9) {
+			for (int i = 0; i < numOfPoints; i++) {
+				for (int j = 0; j < 4; j++) {
+					tabX[i][j] = jacobian[i][0] * elem9->tabKsi[i][j] + jacobian[i][1] * elem9->tabEta[i][j];
+				}
+			}
+			for (int i = 0; i < numOfPoints; i++) {
+				for (int j = 0; j < 4; j++) {
+					tabY[i][j] = jacobian[i][2] * elem9->tabKsi[i][j] + jacobian[i][3] * elem9->tabEta[i][j];
+				}
+			}
+		}
+		else if (numOfPoints == 16) {
+			for (int i = 0; i < numOfPoints; i++) {
+				for (int j = 0; j < 4; j++) {
+					tabX[i][j] = jacobian[i][0] * elem16->tabKsi[i][j] + jacobian[i][1] * elem16->tabEta[i][j];
+				}
+			}
+			for (int i = 0; i < numOfPoints; i++) {
+				for (int j = 0; j < 4; j++) {
+					tabY[i][j] = jacobian[i][2] * elem16->tabKsi[i][j] + jacobian[i][3] * elem16->tabEta[i][j];
+				}
+			}
+		}
+		
+		//final Matrix H
+		for (int i = 0; i < numOfPoints; i++) {
+			for (int j = 0; j < 4; j++) {
+				for (int k = 0; k < 4; k++) {
+					if (numOfPoints == 4) {
+						matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][j] + tabY[i][k] * tabY[i][j]) * detJacobianMinus[i]);
+					}
+					else if (numOfPoints == 9) {
+						matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][j] + tabY[i][k] * tabY[i][j]) * detJacobianMinus[i])
+							* w1for3[i] * w2for3[i];
+					}
+					else if (numOfPoints == 16) {
+						matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][j] + tabY[i][k] * tabY[i][j]) * detJacobianMinus[i])
+							* w1for4[i] * w2for4[i];
+					}
+				}
+			}
+		}
+
+		//print
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				cout << matrixH[i][j] << " ";
+			}
+			cout << endl;
 		}
 		cout << endl;
 	}
+
 }
 
 void aggregation() {
+	double** globalH = new double* [16];
+	for (int i = 0; i < 16; i++) globalH[i] = new double[16];
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			
+		}
+	}
 
 }
 
@@ -550,17 +567,7 @@ int main() {
 	//solution matrixH(numofPoints, &listOfNodes, &elem4, &elem9, &elem16);
 	
 	//matrixH with the data given
-	for (int i = 0; i < grid.nE; i++) {
-		double x[4], y[4];
-		int idN[4];
-		for (int j = 0; j < 4; j++) {
-			idN[j] = grid.elements[i].ID[j];
-			x[j] = grid.nodes[idN[j] - 1].x;
-			y[j] = grid.nodes[idN[j] - 1].y;
-		}
-		matrixH(2, &elem4, &elem9, &elem16, &grid, x, y, &globaldata);
-		cout << endl;
-	}
+	matrixH(4, &elem4, &elem9, &elem16, &grid, &globaldata);
 	
 	return 0;
 }
