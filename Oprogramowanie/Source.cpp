@@ -127,7 +127,6 @@ struct Elem9 {
 			cout << endl;
 		}
 	}
-
 };
 
 //structure for derivatives with 4points
@@ -240,7 +239,7 @@ void readFile(GlobalData* globaldata, Grid* grid) {
 		cout << "\nNodes: " << endl;*/
 		
 		//reading nodes into vector
-		Node node;
+		Node node{};
 		for (int i = 0; i < grid->nN; i++) {
 			
 			float x, y, n;
@@ -255,7 +254,7 @@ void readFile(GlobalData* globaldata, Grid* grid) {
 		getline(dataFile, line);
 		
 		//reading elements into vector
-		Element element;
+		Element element{};
 		for (int i = 0; i < grid->nE; i++) {
 			int n, el[4] = { 0,0,0,0 };
 
@@ -391,35 +390,36 @@ void derivativesElem(Elem4* elem4, Elem9* elem9,Elem16* elem16, void(*derivative
 void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* grid, GlobalData* globaldata) {
 	derivativesElem(elem4, elem9, elem16, &derivativesScheme, numOfPoints);
 	numOfPoints *= numOfPoints;
-	for (int i = 0; i < grid->nE; i++) {
-		double x[4], y[4];
-		int idN[4];
+	double** globalH = new double* [numOfPoints * numOfPoints];
+	for (int i = 0; i < numOfPoints * numOfPoints; i++) {
+		globalH[i] = new double[numOfPoints * numOfPoints];
+		for (int j = 0; j < numOfPoints * numOfPoints; j++) {
+			globalH[i][j] = 0;
+		}
+	}
+	for (int s = 0; s < grid->nE; s++) {
+		double x[4]{}, y[4]{};
+		int idN[4]{};
 		for (int j = 0; j < 4; j++) {
-			idN[j] = grid->elements[i].ID[j];
-			x[j] = grid->nodes[idN[j] - 1].x;
-			y[j] = grid->nodes[idN[j] - 1].y;
+			idN[j] = grid->elements[s].ID[j];
+			x[j] = grid->nodes[static_cast<std::vector<Node, std::allocator<Node>>::size_type>(idN[j]) - 1].x;
+			y[j] = grid->nodes[static_cast<std::vector<Node, std::allocator<Node>>::size_type>(idN[j]) - 1].y;
 		}
 
 		double** jacobian = new double* [numOfPoints];
-		double** pom = new double* [numOfPoints];
 		double** tabX = new double* [numOfPoints];
 		double** tabY = new double* [numOfPoints];
 		double** matrixH = new double* [numOfPoints];
+		double* detJacobian{ new double [numOfPoints] {} };
+		double* detJacobianMinus{ new double [numOfPoints] {} };
+		
 		for (int i = 0; i < numOfPoints; i++) {
 			jacobian[i] = new double[4];
-			pom[i] = new double[4];
 			tabX[i] = new double[4];
 			tabY[i] = new double[4];
 			matrixH[i] = new double[4];
-		}
-
-		double* detJacobian = new double[numOfPoints];
-		double* detJacobianMinus = new double[numOfPoints];
-
-		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
 				jacobian[i][j] = 0;
-				pom[i][j] = 0;
 				matrixH[i][j] = 0;
 				detJacobian[i] = 0;
 				detJacobianMinus[i] = 0;
@@ -430,11 +430,9 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 		if (numOfPoints == 4) {
 			for (int i = 0; i < numOfPoints; i++) {
 				for (int j = 0; j < 4; j++) {
-					//jacobian[i][0] += elem4->tabKsi[i][j] * x[j];
 					jacobian[i][0] += elem4->tabEta[i][j] * y[j];
 					jacobian[i][1] += elem4->tabKsi[i][j] * y[j] * (-1);
 					jacobian[i][2] += elem4->tabEta[i][j] * x[j] * (-1);
-					//jacobian[i][3] += elem4->tabEta[i][j] * y[j];
 					jacobian[i][3] += elem4->tabKsi[i][j] * x[j];
 				}
 			}
@@ -442,20 +440,20 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 		else if (numOfPoints == 9) {
 			for (int i = 0; i < numOfPoints; i++) {
 				for (int j = 0; j < 4; j++) {
-					jacobian[i][0] += elem9->tabKsi[i][j] * x[j];
-					jacobian[i][1] += elem9->tabKsi[i][j] * y[j];
-					jacobian[i][2] += elem9->tabEta[i][j] * x[j];
-					jacobian[i][3] += elem9->tabEta[i][j] * y[j];
+					jacobian[i][0] += elem9->tabEta[i][j] * y[j];
+					jacobian[i][1] += elem9->tabKsi[i][j] * y[j] * (-1);
+					jacobian[i][2] += elem9->tabEta[i][j] * x[j] * (-1);
+					jacobian[i][3] += elem9->tabKsi[i][j] * x[j];
 				}
 			}
 		}
 		else if (numOfPoints == 16) {
 			for (int i = 0; i < numOfPoints; i++) {
 				for (int j = 0; j < 4; j++) {
-					jacobian[i][0] += elem16->tabKsi[i][j] * x[j];
-					jacobian[i][1] += elem16->tabKsi[i][j] * y[j];
-					jacobian[i][2] += elem16->tabEta[i][j] * x[j];
-					jacobian[i][3] += elem16->tabEta[i][j] * y[j];
+					jacobian[i][0] += elem16->tabEta[i][j] * y[j];
+					jacobian[i][1] += elem16->tabKsi[i][j] * y[j] * (-1);
+					jacobian[i][2] += elem16->tabEta[i][j] * x[j] * (-1);
+					jacobian[i][3] += elem16->tabKsi[i][j] * x[j];
 				}
 			}
 		}
@@ -465,17 +463,6 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 			detJacobianMinus[i] = (jacobian[i][0] * jacobian[i][3] - jacobian[i][1] * jacobian[i][2]);
 			detJacobian[i] = 1 / detJacobianMinus[i];
 		}
-		
-		/*for (int i = 0; i < numOfPoints; i++) {
-			for (int j = 0; j < 4; j++) {
-				pom[i][0] = jacobian[i][0];
-				jacobian[i][0] = jacobian[i][3];
-				jacobian[i][1] = jacobian[i][1] * (-1);
-				jacobian[i][2] = jacobian[i][2] * (-1);
-				jacobian[i][3] = pom[i][0];
-			}
-		}*/
-
 		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
 				jacobian[i][j] *= detJacobian[i];
@@ -548,14 +535,29 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 		}
 
 		//print
-		for (int i = 0; i < 4; i++) {
+		/*for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
 				cout << matrixH[i][j] << " ";
 			}
 			cout << endl;
 		}
-		cout << endl;
+		cout << endl;*/
+
+		//aggregation
+
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				globalH[grid->elements[s].ID[i] - 1][grid->elements[s].ID[j] - 1] += matrixH[i][j];
+			}
+		}
+
 	}
+	for (int i = 0; i < numOfPoints; i++) {
+		for (int j = 0; j < numOfPoints; j++) {
+			cout << globalH[i][j] << " ";
+		}
+		cout << endl;
+	}	
 }
 
 int main() {
