@@ -101,8 +101,8 @@ struct Elem9 {
 	double** tabKsi = new double* [9];
 	double** tabEta = new double* [9];
 
-	double pcKsi[9] = { -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0 ,sqrt(0.6) };
-	double pcEta[9] = { -sqrt(0.6), -sqrt(0.6), -sqrt(0.6), 0, 0, 0, sqrt(0.6), sqrt(0.6) , sqrt(0.6) };
+	double pcKsi[9] = { -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0, sqrt(0.6), -sqrt(0.6), 0, sqrt(0.6) };
+	double pcEta[9] = { -sqrt(0.6), -sqrt(0.6), -sqrt(0.6), 0, 0, 0, sqrt(0.6), sqrt(0.6), sqrt(0.6) };
 	Elem9() {
 		for (int i = 0; i < 9; i++) {
 			tabKsi[i] = new double[4];
@@ -217,7 +217,7 @@ void readFile(GlobalData* globaldata, Grid* grid) {
 	string line;
 	//int n, number;
 	fstream dataFile;
-	dataFile.open("Test1_4_4.txt", ios::in);
+	dataFile.open("Test2_4_4.txt", ios::in);
 
 	if (dataFile.is_open()) {
 		string name;
@@ -401,11 +401,13 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 		}
 
 		double** jacobian = new double* [numOfPoints];
+		double** pom = new double* [numOfPoints];
 		double** tabX = new double* [numOfPoints];
 		double** tabY = new double* [numOfPoints];
 		double** matrixH = new double* [numOfPoints];
 		for (int i = 0; i < numOfPoints; i++) {
 			jacobian[i] = new double[4];
+			pom[i] = new double[4];
 			tabX[i] = new double[4];
 			tabY[i] = new double[4];
 			matrixH[i] = new double[4];
@@ -417,6 +419,7 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
 				jacobian[i][j] = 0;
+				pom[i][j] = 0;
 				matrixH[i][j] = 0;
 				detJacobian[i] = 0;
 				detJacobianMinus[i] = 0;
@@ -427,10 +430,12 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 		if (numOfPoints == 4) {
 			for (int i = 0; i < numOfPoints; i++) {
 				for (int j = 0; j < 4; j++) {
-					jacobian[i][0] += elem4->tabKsi[i][j] * x[j];
-					jacobian[i][1] += elem4->tabKsi[i][j] * y[j];
-					jacobian[i][2] += elem4->tabEta[i][j] * x[j];
-					jacobian[i][3] += elem4->tabEta[i][j] * y[j];
+					//jacobian[i][0] += elem4->tabKsi[i][j] * x[j];
+					jacobian[i][0] += elem4->tabEta[i][j] * y[j];
+					jacobian[i][1] += elem4->tabKsi[i][j] * y[j] * (-1);
+					jacobian[i][2] += elem4->tabEta[i][j] * x[j] * (-1);
+					//jacobian[i][3] += elem4->tabEta[i][j] * y[j];
+					jacobian[i][3] += elem4->tabKsi[i][j] * x[j];
 				}
 			}
 		}
@@ -460,6 +465,17 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 			detJacobianMinus[i] = (jacobian[i][0] * jacobian[i][3] - jacobian[i][1] * jacobian[i][2]);
 			detJacobian[i] = 1 / detJacobianMinus[i];
 		}
+		
+		/*for (int i = 0; i < numOfPoints; i++) {
+			for (int j = 0; j < 4; j++) {
+				pom[i][0] = jacobian[i][0];
+				jacobian[i][0] = jacobian[i][3];
+				jacobian[i][1] = jacobian[i][1] * (-1);
+				jacobian[i][2] = jacobian[i][2] * (-1);
+				jacobian[i][3] = pom[i][0];
+			}
+		}*/
+
 		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
 				jacobian[i][j] *= detJacobian[i];
@@ -503,6 +519,14 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 				}
 			}
 		}
+
+		/*for (int i = 0; i < numOfPoints; i++) {
+			for (int j = 0; j < 4; j++) {
+				cout << tabX[i][j] << " ";
+			}
+			cout << endl;
+		}
+		cout << endl;*/
 		
 		//final Matrix H
 		for (int i = 0; i < numOfPoints; i++) {
@@ -532,18 +556,6 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 		}
 		cout << endl;
 	}
-
-}
-
-void aggregation() {
-	double** globalH = new double* [16];
-	for (int i = 0; i < 16; i++) globalH[i] = new double[16];
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			
-		}
-	}
-
 }
 
 int main() {
@@ -567,7 +579,7 @@ int main() {
 	//solution matrixH(numofPoints, &listOfNodes, &elem4, &elem9, &elem16);
 	
 	//matrixH with the data given
-	matrixH(4, &elem4, &elem9, &elem16, &grid, &globaldata);
+	matrixH(3, &elem4, &elem9, &elem16, &grid, &globaldata);
 	
 	return 0;
 }
