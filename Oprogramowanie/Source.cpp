@@ -214,7 +214,6 @@ void derivativesScheme(int i, Elem4* elem4, Elem9* elem9, Elem16* elem16, int nu
 //reading the file
 void readFile(GlobalData* globaldata, Grid* grid) {
 	string line;
-	//int n, number;
 	fstream dataFile;
 	dataFile.open("Test2_4_4.txt", ios::in);
 
@@ -288,6 +287,7 @@ double func(double x) {
 
 //integration without bounds, but with 2 dimentions
 double integration(Integration* scheme, int numOfPoints, int numOfDimention) {
+	//formula: f(ksi,eta)*wi*wj
 	double result = 0;
 
 	if (numOfDimention == 1) {
@@ -319,6 +319,7 @@ double integration(Integration* scheme, int numOfPoints, int numOfDimention) {
 
 //integration with bounds and 1 dimention
 double integrationBounds(Integration* scheme, int numOfPoints, double x1, double x2) {
+	//formula: f(1 - N/2)*x1 + (((N+1)/2)*x2) * detJ * weight
 	double result = 0;
 	if (numOfPoints == 2) {
 		for (int i = 0; i < numOfPoints; i++) result += func(((1 - (*scheme).nodes2[i]) / 2) * x1 +
@@ -412,7 +413,7 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 		double** matrixH = new double* [numOfPoints];
 		double* detJacobian{ new double [numOfPoints] {} };
 		double* detJacobianMinus{ new double [numOfPoints] {} };
-		
+
 		for (int i = 0; i < numOfPoints; i++) {
 			jacobian[i] = new double[4];
 			tabX[i] = new double[4];
@@ -463,9 +464,11 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 			detJacobianMinus[i] = (jacobian[i][0] * jacobian[i][3] - jacobian[i][1] * jacobian[i][2]);
 			detJacobian[i] = 1 / detJacobianMinus[i];
 		}
+
+
 		for (int i = 0; i < numOfPoints; i++) {
 			for (int j = 0; j < 4; j++) {
-				jacobian[i][j] *= detJacobian[i];
+				jacobian[i][j] *= detJacobian[i];			
 			}
 		}
 
@@ -524,24 +527,25 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 					}
 					else if (numOfPoints == 9) {
 						matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][j] + tabY[i][k] * tabY[i][j]) * detJacobianMinus[i])
-							* w1for3[i] * w2for3[i];
+						* w1for3[i] * w2for3[i];
+						
 					}
 					else if (numOfPoints == 16) {
 						matrixH[j][k] += (globaldata->lambda * (tabX[i][k] * tabX[i][j] + tabY[i][k] * tabY[i][j]) * detJacobianMinus[i])
-							* w1for4[i] * w2for4[i];
+						* w1for4[i] * w2for4[i];
 					}
 				}
 			}
 		}
 
 		//print
-		/*for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
 				cout << matrixH[i][j] << " ";
 			}
 			cout << endl;
 		}
-		cout << endl;*/
+		cout << endl;
 
 		//aggregation
 
@@ -552,12 +556,12 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9 *elem9, Elem16* elem16, Grid* 
 		}
 
 	}
-	for (int i = 0; i < numOfPoints; i++) {
-		for (int j = 0; j < numOfPoints; j++) {
+	/*for (int i = 0; i < numOfPoints*numOfPoints; i++) {
+		for (int j = 0; j < numOfPoints*numOfPoints; j++) {
 			cout << globalH[i][j] << " ";
 		}
 		cout << endl;
-	}	
+	}	*/
 }
 
 int main() {
@@ -565,7 +569,6 @@ int main() {
 	Grid grid;
 	GlobalData globaldata;
 	Integration scheme;
-	list<Element> listOfElements;
 	Elem4 elem4; Elem9 elem9; Elem16 elem16;
 
 	//reading the file
