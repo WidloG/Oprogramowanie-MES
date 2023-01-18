@@ -610,7 +610,7 @@ void derivativesScheme(int i, Elem4* elem4, Elem9* elem9, Elem16* elem16, int nu
 void readFile(GlobalData* globaldata, Grid* grid) {
 	string line;
 	fstream dataFile;
-	dataFile.open("Test2_4_4.txt", ios::in);
+	dataFile.open("Test3_31_31.txt", ios::in);
 
 	if (dataFile.is_open()) {
 		string name;
@@ -1008,7 +1008,7 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9* elem9, Elem16* elem16, Grid* 
 		}
 	}
 
-	for (int t = 50; t < 501; t += 50) {
+	for (int t = globaldata->st; t <= globaldata->t; t += globaldata->st) {
 		for (int g = 0; g < grid->nN; g++) {
 			globalPP[g] = globalP[g];
 			for (int p = 0; p < grid->nN; p++) globalPP[g] += globalC[g][p] / globaldata->st * globalT[p];
