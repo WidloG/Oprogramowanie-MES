@@ -447,7 +447,6 @@ struct Borders {
 		}
 		return 0;
 	}
-
 	double* vectorP() {
 		if (numOfPoints == 4) {
 			for (int i = 0; i < 8; i++) {
@@ -1032,10 +1031,9 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9* elem9, Elem16* elem16, Grid* 
 			if (globalT[i] < min) min = globalT[i];
 		}
 
-		std::cout << "Time: " << t << "\t";
-		std::cout << "Tmin: " << min << "\t";
-		std::cout << "Tmax: " << max << std::endl;
-		cout << endl;
+		cout << "Time: " << t << "\t";
+		cout << "Tmin: " << min << "\t";
+		cout << "Tmax: " << max << std::endl;
 	}
 }
 
