@@ -1033,7 +1033,7 @@ void matrixH(int numOfPoints, Elem4* elem4, Elem9* elem9, Elem16* elem16, Grid* 
 
 		cout << "Time: " << t << "\t";
 		cout << "Tmin: " << min << "\t";
-		cout << "Tmax: " << max << std::endl;
+		cout << "Tmax: " << max << endl;
 	}
 }
 
